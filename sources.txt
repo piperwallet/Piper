@@ -1,0 +1,23 @@
+
+This is a list of where things were obtained.  You can easily download any of these items yourself and verify that they are the same as the ones present on Piper.  Any modifications made are listed.  You can find the modified source of these files in "/home/pi/vanitygen" for example.
+
+
+vanitygen 
+	Source: https://github.com/samr7/vanitygen
+	Modifications: Commented out line 500 and line 501 of pattern.c.  This is to prevent vanitygen from outputting how much time is left until it finds a key that matches the pattern. 
+
+
+vanitygen-ltc
+	Source: https://github.com/dasher/vanitygen
+	Modifications: Commented out line 500 and line 501 of pattern.c.  This is to prevent vanitygen from outputting how much time is left until it finds a key that matches the pattern.  
+
+
+electrum
+	Source: https://github.com/spesmilo/electrum
+	Modifications: Added the ability to print wallet seed and keys with piper.  
+		In file electrum/gui/gui_classic.py:
+		Line 401-405 added menu items to print wallet seed and keys
+		Line 1164 added context menu item to print key with piper
+		Line 1446 added function called from line 401-405 which prints the encrypted wallet seed
+		Line 1454 added functions called from line 401-405 which prints the unencrypted wallet seed.
+		Line 1582 added function called from line 1146 which prints the public/private keypair
