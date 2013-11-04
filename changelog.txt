@@ -1,0 +1,7 @@
+From 1.01 to 1.02:
+	Updates bitaddress.org to latest 2.5.2 version which includes BIP0038 Support
+	Implemented BIP0038 as an option for printing encrypted paper wallets
+	Brought in zimage's bitcoin-python-library
+	Added dialog boxes for error messages which were previously only showing up in the terminal and were therefore useless to the end user
+
+
