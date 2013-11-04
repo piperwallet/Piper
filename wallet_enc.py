@@ -1,5 +1,6 @@
 #this code was mostly taken and modified from the electrum project located here: https://github.com/spesmilo/electrum
 
+#the BIP0038 stuff comes from zimages fork of the python bitcoin utils
 
 import base64
 import hashlib
