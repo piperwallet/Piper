@@ -250,7 +250,7 @@ def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password):
 	import wallet_enc as WalletEnc
 	#encrypt the keys if needed
 	if(password != ""):
-		privkey = WalletEnc.pw_encode(btckeys.privkey, password)
+		privkey = WalletEnc.pw_encode(btckeys.pubkey, btckeys.privkey, password)
 	else:
 		privkey = btckeys.privkey
 	
