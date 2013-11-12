@@ -45,13 +45,36 @@ def print_keypair(pubkey, privkey, leftBorderText):
 #open the printer itself
 	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
 
+#check the cointype to decide which background to use
+	con = None
+	try:
+		con = sqlite3.connect('/home/pi/Printer/keys.db3')
+		cur = con.cursor()
+		cur.execute("SELECT coinType FROM piper_settings LIMIT 1;")
+		row = cur.fetchone()
+		coinType = row[0]
+	except sqlite3.Error, e:
+		print("Error %s:" % e.args[0])
+		sys.exit(1)
+	finally:
+		if con:
+			con.commit()
+			con.close()
+		
+	if(coinType == "litecoin"):
+		finalImgName="ltc-wallet"
+	else:
+		finalImgName="btc-wallet"
+
 
 #load a blank image of the paper wallet with no QR codes or keys on it which we will draw on
 	if(len(privkey) <= 51):
-		finalImg = Image.open("/home/pi/Printer/btc-wallet-blank.bmp")
+		finalImgName += "-blank.bmp"
 	else:
-		finalImg = Image.open("/home/pi/Printer/btc-wallet-enc.bmp")
+		finalImgName += "-enc.bmp"
 
+	finalImgFolder = "/home/pi/Printer/Images/"
+	finalImg = Image.open(finalImgFolder+finalImgName)
 
 
 
@@ -236,8 +259,6 @@ def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password):
 	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
 
 
-	#load a blank image of the paper wallet with no QR codes or keys on it which we will draw on
-	finalImg = Image.open("btc-wallet-blank.bmp")
 
 	#this actually generates the keys.  see the file genkeys.py or genkeys_forget.py
 	import genkeys as btckeys
