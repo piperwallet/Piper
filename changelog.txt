@@ -9,3 +9,8 @@ From 1.02 to 1.03:
 	Fixed bug in main Piper daemon that was caused by the RPi.GPIO Python Event library.  The bug could cause Piper to register a button press when the remember/forget switch was switched.
 	Added Litecoin logo image for Litecoin paper wallets contributed by a Piper user
 	Added bitcoinpaperwallet.com html page for users who desire to use it with their own printers
+
+From 1.03 to 1.04:
+	Fixed printing so that paper wallets now print in one smooth motion.
+
+
