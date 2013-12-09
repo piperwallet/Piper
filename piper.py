@@ -219,7 +219,7 @@ def print_keypair(pubkey, privkey, leftBorderText):
 
     #do the actual printing
 
-	printer.printImage(finalImg, true)
+	printer.printImage(finalImg, True)
 	
 	if(len(privkey) <= 51):
 		printer.printChar(privkey[:17]+"\n")
