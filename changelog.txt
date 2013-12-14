@@ -13,4 +13,7 @@ From 1.02 to 1.03:
 From 1.03 to 1.04:
 	Fixed printing so that paper wallets now print in one smooth motion.
 
+From 1.04 to 1.05:
+	Removed the ability to use BIP0038 with litecoin because the bitcoin python library we are using has no litecoin fork yet
+
 
