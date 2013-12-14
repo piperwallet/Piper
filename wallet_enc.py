@@ -48,9 +48,9 @@ def pw_encode(pub, priv, password):
 	con = None
 	encType = ""	
 	try:
-		con = sqlite3.connect('/home/pi/Printer/keys.db3')
+		con = sqlite3.connect('/home/pi/Printer/settings.db3')
 		cur = con.cursor()
-		cur.execute("SELECT encType FROM piper_settings LIMIT 1;")
+		cur.execute("SELECT value FROM Settings WHERE key='encType' LIMIT 1;")
 		row = cur.fetchone()
 		encType = row[0]
 	except sqlite3.Error, e:

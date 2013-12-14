@@ -48,11 +48,12 @@ def print_keypair(pubkey, privkey, leftBorderText):
 #check the cointype to decide which background to use
 	con = None
 	try:
-		con = sqlite3.connect('/home/pi/Printer/keys.db3')
+		con = sqlite3.connect('/home/pi/Printer/settings.db3')
 		cur = con.cursor()
-		cur.execute("SELECT coinType FROM piper_settings LIMIT 1;")
+		cur.execute("SELECT CoinFormats.bgfile, CoinFormats.name FROM Settings, CoinFormats WHERE Settings.key='cointype' and Settings.value = CoinFormats.name;")
 		row = cur.fetchone()
-		coinType = row[0]
+		finalImgName = row[0]
+		coinName = row[1]
 	except sqlite3.Error, e:
 		print("Error %s:" % e.args[0])
 		sys.exit(1)
@@ -60,19 +61,15 @@ def print_keypair(pubkey, privkey, leftBorderText):
 		if con:
 			con.commit()
 			con.close()
-		
-	if(coinType == "litecoin"):
-		finalImgName="ltc-wallet"
-	else:
-		finalImgName="btc-wallet"
+	printCoinName = (finalImgName == "blank")
 
-
+	finalImgName += "-wallet"
 #load a blank image of the paper wallet with no QR codes or keys on it which we will draw on
-	if(len(privkey) <= 51):
-		finalImgName += "-blank.bmp"
-	else:
-		finalImgName += "-enc.bmp"
+	if(len(privkey) > 51):
+		finalImgName += "-enc"
 
+	finalImgName += ".bmp"
+	
 	finalImgFolder = "/home/pi/Printer/Images/"
 	finalImg = Image.open(finalImgFolder+finalImgName)
 
@@ -98,10 +95,14 @@ def print_keypair(pubkey, privkey, leftBorderText):
 	pubkeyImg = pubkeyImg.resize((175,175), Image.NEAREST)
 
 
-	font = ImageFont.truetype("/usr/share/fonts/ttf/ubuntu-font-family-0.80/UbuntuMono-R.ttf", 20)
+	font = ImageFont.truetype("/usr/share/fonts/ttf/swansea.ttf", 60)
 	draw = ImageDraw.Draw(finalImg)
 
+	if(printCoinName):
+		draw.text((45, 400), coinName, font=font, fill=(0,0,0))
 
+
+	font = ImageFont.truetype("/usr/share/fonts/ttf/ubuntu-font-family-0.80/UbuntuMono-R.ttf", 20)
 	startPos=(110,38)
 	charDist=15
 	lineHeight=23
@@ -264,9 +265,6 @@ def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password):
 	import genkeys as btckeys
 
 	btckeys.genKeys()
-
-	if btckeys.keysAreValid == False:
-		printer.write("Error: The generated keys (public/private) are not the correct length.  Please try again.")
 		
 	import wallet_enc as WalletEnc
 	#encrypt the keys if needed
@@ -322,8 +320,6 @@ def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password):
 		#piper.print_keypair(pubkey, privkey, leftBorderText)
 		print_keypair(btckeys.pubkey, privkey, leftMarkText)
 		
-		if numCopies > 1 and x < numCopies-1:
-			time.sleep(30)
 
 
 

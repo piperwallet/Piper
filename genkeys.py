@@ -31,12 +31,16 @@ def genKeys():
 
 	con = None
 	try:
-		con = sqlite3.connect('/home/pi/Printer/keys.db3')
+		con = sqlite3.connect('/home/pi/Printer/settings.db3')
 		cur = con.cursor()
-		cur.execute("SELECT coinType, addrPrefix FROM piper_settings LIMIT 1;")
+		cur.execute("SELECT CoinFormats.versionNum FROM Settings, CoinFormats WHERE Settings.key='cointype' and Settings.value = CoinFormats.name;")
 		row = cur.fetchone()
-		coinType = row[0]
-		addrPrefix = row[1]
+		versionNum = str(row[0])
+
+		cur.execute("SELECT value FROM Settings WHERE key='addrPrefix';");
+		row = cur.fetchone()
+		addrPrefix = row[0]
+		
 	except sqlite3.Error, e:
 		print("Error %s:" % e.args[0])
 		sys.exit(1)
@@ -45,19 +49,11 @@ def genKeys():
 			con.commit()
 			con.close()
 		
-	if(coinType == "litecoin"):
-		process = Popen(["./vanitygen-litecoin", "-q", "-L", "-t","1","-s", "/dev/random", addrPrefix], stdout=PIPE)
-	else:
-		process = Popen(["./vanitygen", "-q", "-t","1","-s", "/dev/random", addrPrefix], stdout=PIPE)
+	process = Popen(["./vanitygen", "-q", "-t","1","-s", "/dev/random","-X", versionNum, addrPrefix], stdout=PIPE)
 
 	results = process.stdout.read()
 	addrs = results.split()
 	pubkey = addrs[3]
 	privkey = addrs[5]
 	
-#we do a basic length sanity check on the public and private keys
-	if len(privkey) == 51 and len(pubkey) >= 27:
-		keysAreValid = True
-	else:
-		keysAreValid = False 
 
