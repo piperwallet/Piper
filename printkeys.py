@@ -24,6 +24,7 @@ import qrcode
 import sys
 from Adafruit_Thermal import *
 import piper as Piper
+import random
 
 #define function to print usage and exit
 def printUsageAndExit():
@@ -59,4 +60,34 @@ if numCopies <= 0:
 	sys.exit(0);
 
 
-Piper.genAndPrintKeys(rememberKeys, rememberKeys, numCopies, "")
+#check on the setting to automatically encrypt the private key
+
+
+#load settings from DB
+con = None
+try:
+	con = sqlite3.connect('/home/pi/Printer/settings.db3')
+	cur = con.cursor()
+	cur.execute("SELECT key, value FROM Settings;")
+	# heatTime, coinType, addrPrefix, encType FROM piper_settings LIMIT 1;")
+	rows = cur.fetchall()
+	settings = {}
+	for row in rows:
+		settings[row[0]] = row[1]
+except sqlite3.Error, e:
+	print("Error %s:" % e.args[0])
+	sys.exit(1)
+finally:
+	if con:
+		con.commit()
+		con.close()
+		    
+pw = ""
+if(settings["headlessEnc"] == "1"):
+	with open("wordlist.txt") as f:
+	    content = f.readlines()
+	    for i in range(3):
+		pw += content[random.randint(0, len(content))].strip().capitalize()
+	    
+
+Piper.genAndPrintKeysAndPass(rememberKeys, rememberKeys, numCopies, pw)

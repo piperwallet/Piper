@@ -22,6 +22,124 @@ import qrcode
 import sys
 import sqlite3
 from Adafruit_Thermal import *
+from secretsharing.shamir import Secret
+
+def getQR(ttp, newSize):
+	qr = qrcode.QRCode(
+	    version=None,
+	    error_correction=qrcode.constants.ERROR_CORRECT_M,
+	    box_size=10,
+	    border=0,
+	)
+
+	qr.add_data(ttp)
+	qr.make(fit=True)
+
+	qrImg = qr.make_image()
+
+#resize the qr code to match our design
+	qrImg = qrImg.resize(newSize, Image.NEAREST)
+
+	return qrImg
+
+
+def splitAndPrint(ttp, k, n):
+	print "Thing to split: "+ttp
+	#first, split it up
+	secret = Secret.from_printable_ascii(ttp)
+	shares = secret.split(int(k), int(n))
+	
+	#now convert to QR codes and print the shares
+	print shares
+
+	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
+
+	qrSize = (340, 340)
+	ctr = 0
+	
+	qrImg = {}
+	for shr in shares:
+		print "Share: "+shr
+		
+		finalImg = Image.new("RGB", (384, 440), "white")
+		finalImg.paste(getQR(shr, qrSize), (30, 55))
+
+	 	qrImg[shr] = finalImg
+	
+	dividerLine = Image.new("RGB", (384, 6), "black")
+	dividerLine.paste(Image.new("RGB", (384, 3), "white"), (0, 0))
+	for shr in shares:
+		printer.printImage(dividerLine, True)
+		printer.println("This is a share in a "+k+" of "+n+"\nthreshold scheme")
+		printer.println(shr)
+		printer.printImage(qrImg[shr], True)
+		printer.println(shr)
+		printer.println("Shamir's Secret Sharing")
+		printer.printImage(dividerLine, True)
+		printer.feed(3)
+		
+	printer.sleep()      # Tell printer to sleep
+	printer.wake()       # Call wake() before printing again, even if reset
+	printer.setDefault() # Restore printer to defaults
+
+
+def encodeQRAndPrint(ttp):
+	qrSize = (340, 340)
+
+	finalImg = Image.new("RGB", (384, 440), "white")
+	finalImg.paste(getQR(ttp, qrSize), (30, 55))
+
+	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
+
+	printer.printImage(finalImg, True)
+	
+	printer.feed(3)
+
+	printer.sleep()      # Tell printer to sleep
+	printer.wake()       # Call wake() before printing again, even if reset
+	printer.setDefault() # Restore printer to defaults
+
+
+def encodeQRAndPrintText(headerText, ttp):
+	qrSize = (340, 340)
+
+	finalImg = Image.new("RGB", (384, 440), "white")
+	finalImg.paste(getQR(ttp, qrSize), (30, 55))
+
+	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
+
+	dividerLine = Image.new("RGB", (384, 6), "black")
+	dividerLine.paste(Image.new("RGB", (384, 3), "white"), (0, 0))
+
+	printer.printImage(dividerLine, True)
+	printer.println(headerText)
+	printer.println(ttp)
+	printer.printImage(finalImg, True)
+	printer.println(ttp)
+	printer.printImage(dividerLine, True)
+
+	
+	printer.feed(3)
+
+	printer.sleep()      # Tell printer to sleep
+	printer.wake()       # Call wake() before printing again, even if reset
+	printer.setDefault() # Restore printer to defaults
+
+def printText(ttp):
+
+	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
+
+
+	printer.println(ttp)
+
+	
+	printer.feed(3)
+
+	printer.sleep()      # Tell printer to sleep
+	printer.wake()       # Call wake() before printing again, even if reset
+	printer.setDefault() # Restore printer to defaults
+
+
 
 
 def print_seed(seed):
@@ -33,6 +151,47 @@ def print_seed(seed):
 	
 	printer.feed(3)
 
+
+	printer.sleep()      # Tell printer to sleep
+	printer.wake()       # Call wake() before printing again, even if reset
+	printer.setDefault() # Restore printer to defaults
+
+
+def print_password(headerText, ttp):
+
+
+
+	dividerLine = Image.new("RGB", (384, 6), "black")
+	dividerLine.paste(Image.new("RGB", (384, 3), "white"), (0, 0))
+
+
+#create the divider
+
+
+	bottomDividerLineImg = Image.open("/home/pi/Printer/dividerline.bmp")
+	font = ImageFont.truetype("/usr/share/fonts/ttf/swansea.ttf", 20)
+	draw = ImageDraw.Draw(bottomDividerLineImg)
+	
+	rightMarkText = "Piperwallet.com"
+	rightMarkSize = draw.textsize(rightMarkText, font=font)
+
+	leftMarkOrigin = (10, 15)
+	rightMarkOrigin = (384-rightMarkSize[0]-10, 15)
+    
+	draw.text(leftMarkOrigin, headerText, font=font, fill=(0,0,0))
+	draw.text(rightMarkOrigin,rightMarkText, font=font, fill=(0,0,0))
+
+
+
+	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
+
+	printer.printImage(dividerLine, True)
+	printer.println("Password: ")
+	printer.println(ttp)
+	printer.printImage(bottomDividerLineImg, True)
+
+	
+	printer.feed(3)
 
 	printer.sleep()      # Tell printer to sleep
 	printer.wake()       # Call wake() before printing again, even if reset
@@ -246,11 +405,7 @@ def print_keypair(pubkey, privkey, leftBorderText):
 	printer.setDefault() # Restore printer to defaults
 	
 	
-	
-
-
-def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password):
-
+def genKeys(remPubKey, remPrivKey, password):
 
 	#open serial number file which tracks the serial number
 	snumfile = open('serialnumber.txt', 'r+')
@@ -311,20 +466,41 @@ def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password):
 		f.write("\n---------------------------------\n")
 		f.close()
 
+	#update serial number
+	snumfile.seek(0,0)
+	snumfile.write(str(int(snum)+1))
+	snumfile.close()
+
+
 
 	leftMarkText = "Serial Number: "+snum
+	return btckeys.pubkey, privkey, leftMarkText
 
+
+
+def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password):
+	
+	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password)
+	
 	#do the actual printing
 	for x in range(0, numCopies):
-
 		#piper.print_keypair(pubkey, privkey, leftBorderText)
-		print_keypair(btckeys.pubkey, privkey, leftMarkText)
+		print_keypair(pubkey, privkey, leftMarkText)
 		
 
 
 
 
-	#update serial number
-	snumfile.seek(0,0)
-	snumfile.write(str(int(snum)+1))
-	snumfile.close()
+def genAndPrintKeysAndPass(remPubKey, remPrivKey, numCopies, password):
+
+	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password)
+	
+	#do the actual printing
+	for x in range(0, numCopies):
+		#piper.print_keypair(pubkey, privkey, leftBorderText)
+		print_keypair(pubkey, privkey, leftMarkText)
+		if password != "":
+			print_password(leftMarkText, password)
+		
+
+

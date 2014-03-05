@@ -20,4 +20,4 @@ From 1.05 to 1.06:
 	Moved settings to own database in a better structure, so settings are now seperate from keys
 	Added alt coins and cleaned up litecoin key generation.  Was able to remove seperate version of vanitygen for litecoin only.
 	Removed sleep from between duplicate wallet printing
-
+	Added Utilities tab to GUI with SSSS and misc text printing
