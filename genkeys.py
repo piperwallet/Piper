@@ -21,12 +21,9 @@ import sqlite3
 
 pubkey = ""
 privkey = ""
-keysAreValid = False
 
 def genKeys():
-	global pubkey, privkey, keysAreValid
-
-	keysAreValid = False
+	global pubkey, privkey
 
 
 	con = None
@@ -53,7 +50,7 @@ def genKeys():
 
 	results = process.stdout.read()
 	addrs = results.split()
-	pubkey = addrs[3]
-	privkey = addrs[5]
+	pubkey = addrs[3].strip()
+	privkey = addrs[5].strip()
 	
 

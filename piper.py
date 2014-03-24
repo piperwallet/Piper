@@ -23,6 +23,15 @@ import sys
 import sqlite3
 from Adafruit_Thermal import *
 from secretsharing.shamir import Secret
+import random
+
+def getRandPass(length):
+	pw = ""
+	with open("/home/pi/Printer/wordlist.txt") as f:
+	    content = f.readlines()
+	    for i in range(length):
+		pw += content[random.randint(0, len(content))].strip().capitalize()
+	return pw
 
 def getQR(ttp, newSize):
 	qr = qrcode.QRCode(
@@ -78,8 +87,6 @@ def splitAndPrint(ttp, k, n):
 		printer.printImage(dividerLine, True)
 		printer.feed(3)
 		
-	printer.sleep()      # Tell printer to sleep
-	printer.wake()       # Call wake() before printing again, even if reset
 	printer.setDefault() # Restore printer to defaults
 
 
@@ -95,8 +102,34 @@ def encodeQRAndPrint(ttp):
 	
 	printer.feed(3)
 
-	printer.sleep()      # Tell printer to sleep
-	printer.wake()       # Call wake() before printing again, even if reset
+	printer.setDefault() # Restore printer to defaults
+
+
+def printHDMWalletSeed(headerText, seed, xpub):
+	qrSize = (170,170)
+	qrPad = 10
+
+	finalImg = Image.new("RGB", (384, qrSize[1]), "white")
+	finalImg.paste(getQR(seed, qrSize), (qrPad, 0))
+	finalImg.paste(getQR(xpub, qrSize), (qrSize[0]+qrPad*2+14, 0))
+
+
+	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
+
+	dividerLine = Image.new("RGB", (384, 6), "black")
+	dividerLine.paste(Image.new("RGB", (384, 4), "white"), (0, 0))
+
+	printer.printImage(dividerLine, True)
+	printer.println(headerText)
+	printer.println("Seed Mnemonic: "+seed+'\n')
+	printer.println("xpub: "+xpub+'\n')
+	printer.printImage(finalImg, True)
+	printer.feed(1)
+	printer.printImage(dividerLine, True)
+
+	
+	printer.feed(3)
+
 	printer.setDefault() # Restore printer to defaults
 
 
@@ -121,8 +154,6 @@ def encodeQRAndPrintText(headerText, ttp):
 	
 	printer.feed(3)
 
-	printer.sleep()      # Tell printer to sleep
-	printer.wake()       # Call wake() before printing again, even if reset
 	printer.setDefault() # Restore printer to defaults
 
 def printText(ttp):
@@ -135,8 +166,6 @@ def printText(ttp):
 	
 	printer.feed(3)
 
-	printer.sleep()      # Tell printer to sleep
-	printer.wake()       # Call wake() before printing again, even if reset
 	printer.setDefault() # Restore printer to defaults
 
 
@@ -152,8 +181,6 @@ def print_seed(seed):
 	printer.feed(3)
 
 
-	printer.sleep()      # Tell printer to sleep
-	printer.wake()       # Call wake() before printing again, even if reset
 	printer.setDefault() # Restore printer to defaults
 
 
@@ -162,7 +189,7 @@ def print_password(headerText, ttp):
 
 
 	dividerLine = Image.new("RGB", (384, 6), "black")
-	dividerLine.paste(Image.new("RGB", (384, 3), "white"), (0, 0))
+	dividerLine.paste(Image.new("RGB", (384, 4), "white"), (0, 0))
 
 
 #create the divider
@@ -193,13 +220,11 @@ def print_password(headerText, ttp):
 	
 	printer.feed(3)
 
-	printer.sleep()      # Tell printer to sleep
-	printer.wake()       # Call wake() before printing again, even if reset
 	printer.setDefault() # Restore printer to defaults
 
 
 
-def print_keypair(pubkey, privkey, leftBorderText):
+def print_keypair(pubkey, privkey, leftBorderText, coinType):
 
 #open the printer itself
 	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
@@ -209,10 +234,9 @@ def print_keypair(pubkey, privkey, leftBorderText):
 	try:
 		con = sqlite3.connect('/home/pi/Printer/settings.db3')
 		cur = con.cursor()
-		cur.execute("SELECT CoinFormats.bgfile, CoinFormats.name FROM Settings, CoinFormats WHERE Settings.key='cointype' and Settings.value = CoinFormats.name;")
+		cur.execute("SELECT bgfile FROM CoinFormats WHERE name=?;",(coinType,))
 		row = cur.fetchone()
 		finalImgName = row[0]
-		coinName = row[1]
 	except sqlite3.Error, e:
 		print("Error %s:" % e.args[0])
 		sys.exit(1)
@@ -240,7 +264,7 @@ def print_keypair(pubkey, privkey, leftBorderText):
 #feel free to change the error correct level as you see fit
 	qr = qrcode.QRCode(
 	    version=None,
-	    error_correction=qrcode.constants.ERROR_CORRECT_M,
+	    error_correction=qrcode.constants.ERROR_CORRECT_H,
 	    box_size=10,
 	    border=0,
 	)
@@ -258,7 +282,7 @@ def print_keypair(pubkey, privkey, leftBorderText):
 	draw = ImageDraw.Draw(finalImg)
 
 	if(printCoinName):
-		draw.text((45, 400), coinName, font=font, fill=(0,0,0))
+		draw.text((45, 400), coinType, font=font, fill=(0,0,0))
 
 
 	font = ImageFont.truetype("/usr/share/fonts/ttf/ubuntu-font-family-0.80/UbuntuMono-R.ttf", 20)
@@ -309,7 +333,7 @@ def print_keypair(pubkey, privkey, leftBorderText):
 #feel free to change the error correct level as you see fit
 	qr = qrcode.QRCode(
 	    version=None,
-	    error_correction=qrcode.constants.ERROR_CORRECT_M,
+	    error_correction=qrcode.constants.ERROR_CORRECT_H,
 	    box_size=10,
 	    border=0,
 	)
@@ -375,12 +399,11 @@ def print_keypair(pubkey, privkey, leftBorderText):
 
 
 
-
-
-    #do the actual printing
-
-	printer.printImage(finalImg, True)
+	#strip whitespace from private key
+	privkey = privkey.strip()
 	
+    	#do the actual printing
+	printer.printImage(finalImg)
 	if(len(privkey) <= 51):
 		printer.printChar(privkey[:17]+"\n")
 		printer.justify('R')
@@ -400,19 +423,18 @@ def print_keypair(pubkey, privkey, leftBorderText):
 
 
 
-	printer.sleep()      # Tell printer to sleep
-	printer.wake()       # Call wake() before printing again, even if reset
 	printer.setDefault() # Restore printer to defaults
 	
-	
-def genKeys(remPubKey, remPrivKey, password):
+def genKeys(remPubKey, remPrivKey, password, coinType, remPW):
 
 	#open serial number file which tracks the serial number
 	snumfile = open('serialnumber.txt', 'r+')
 	snum = snumfile.read()
-
-	#open the printer itself
-	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
+	
+	#update serial number
+	snumfile.seek(0,0)
+	snumfile.write(str(int(snum)+1))
+	snumfile.close()
 
 
 
@@ -423,8 +445,10 @@ def genKeys(remPubKey, remPrivKey, password):
 		
 	import wallet_enc as WalletEnc
 	#encrypt the keys if needed
+	sqliteEncrypted = 0
 	if(password != ""):
 		privkey = WalletEnc.pw_encode(btckeys.pubkey, btckeys.privkey, password)
+		sqliteEncrypted = 1
 	else:
 		privkey = btckeys.privkey
 	
@@ -432,6 +456,7 @@ def genKeys(remPubKey, remPrivKey, password):
 	rememberKeys = False
 	sqlitePubKey = ""
 	sqlitePrivKey = ""
+	sqlitePW = ""
 	strToWrite = ""
 	if remPubKey:
 		strToWrite = "\nPublic Key: "+btckeys.pubkey
@@ -443,13 +468,21 @@ def genKeys(remPubKey, remPrivKey, password):
 		sqlitePrivKey = privkey
 		rememberKeys = True
 
+	if remPW:
+		strToWrite = strToWrite + "\nPassword: "+password
+		sqlitePW = password
+		rememberKeys = True
+
+
 
 	if rememberKeys == True:
+
+
 		#store it to the sqlite db
 		con = None
 		try:
 			con = sqlite3.connect('/home/pi/Printer/keys.db3')
-		        con.execute("INSERT INTO keys (serialnum, public, private) VALUES (?,?,?)", (snum, sqlitePubKey, sqlitePrivKey))
+		        con.execute("INSERT INTO keys (serialnum, public, private, coinType, password, encrypted) VALUES (?,?,?,?,?,?)", (snum, sqlitePubKey, sqlitePrivKey, coinType, sqlitePW, sqliteEncrypted))
 		except sqlite3.Error, e:
 			print "Error %s:" % e.args[0]
 			sys.exit(1)
@@ -461,16 +494,11 @@ def genKeys(remPubKey, remPrivKey, password):
 		
 		#store it in a flat file on the sd card
 		f = open("/boot/keys.txt", 'a+')
+		strToWrite = strToWrite + "\nCoin Type: "+coinType
 		strToWrite = "Serial Number: " + snum + strToWrite
 		f.write(strToWrite);
 		f.write("\n---------------------------------\n")
 		f.close()
-
-	#update serial number
-	snumfile.seek(0,0)
-	snumfile.write(str(int(snum)+1))
-	snumfile.close()
-
 
 
 	leftMarkText = "Serial Number: "+snum
@@ -478,27 +506,27 @@ def genKeys(remPubKey, remPrivKey, password):
 
 
 
-def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password):
+def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password, coinType, remPW):
 	
-	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password)
+	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password, coinType, remPW)
 	
 	#do the actual printing
 	for x in range(0, numCopies):
 		#piper.print_keypair(pubkey, privkey, leftBorderText)
-		print_keypair(pubkey, privkey, leftMarkText)
+		print_keypair(pubkey, privkey, leftMarkText, coinType)
 		
 
 
 
 
-def genAndPrintKeysAndPass(remPubKey, remPrivKey, numCopies, password):
+def genAndPrintKeysAndPass(remPubKey, remPrivKey, numCopies, password, coinType, remPW):
 
-	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password)
+	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password, coinType, remPW)
 	
 	#do the actual printing
 	for x in range(0, numCopies):
 		#piper.print_keypair(pubkey, privkey, leftBorderText)
-		print_keypair(pubkey, privkey, leftMarkText)
+		print_keypair(pubkey, privkey, leftMarkText, coinType)
 		if password != "":
 			print_password(leftMarkText, password)
 		

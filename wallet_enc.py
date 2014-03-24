@@ -28,7 +28,7 @@ DecodeAES = lambda secret, e: aes.decryptData(secret, b58decode(e))
 #DecodeAES = lambda secret, e: aes.decryptData(secret, base64.b64decode(e))
 
 
-#BIO0038
+#BIP0038
 def encryptBIP0038(pubkey, privkey, secret):
 	k = CKey()
 	#decode the wallet import format by base58 decoding then dropping the last 4 bytes and the first byte
@@ -38,8 +38,13 @@ def encryptBIP0038(pubkey, privkey, secret):
 	k.generate(decoded)
 	k.set_compressed(False)
 	b = Bip38(k, secret)
-	return str(CBase58Data(b.get_encrypted(), 0x01))       
-	
+	res = b.encrypt_no_ec_multiply()
+	return res 
+
+def decryptBIP0038(privkey, password):
+	return str(CBase58Data(Bip38.decrypt(privkey, password), 128))
+
+
 
 def pw_encode(pub, priv, password):
     if password:

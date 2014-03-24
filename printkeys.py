@@ -25,6 +25,7 @@ import sys
 from Adafruit_Thermal import *
 import piper as Piper
 import random
+import sqlite3
 
 #define function to print usage and exit
 def printUsageAndExit():
@@ -81,13 +82,10 @@ finally:
 	if con:
 		con.commit()
 		con.close()
-		    
-pw = ""
-if(settings["headlessEnc"] == "1"):
-	with open("wordlist.txt") as f:
-	    content = f.readlines()
-	    for i in range(3):
-		pw += content[random.randint(0, len(content))].strip().capitalize()
-	    
+coinType = settings["cointype"]
 
-Piper.genAndPrintKeysAndPass(rememberKeys, rememberKeys, numCopies, pw)
+pw = ""
+if(settings["headlessEnc"] == "1"): 
+	pw = Piper.getRandPass(int(settings['randomPasswordLength']))
+Piper.genAndPrintKeysAndPass(rememberKeys, rememberKeys, numCopies, pw, coinType, rememberKeys)
+
