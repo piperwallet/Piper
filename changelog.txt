@@ -36,3 +36,5 @@ From 1.08 to 1.09
 From 1.09 to 1.10
 	Actualy fixed the LED shutdown bug
 
+From 1.10 to 1.11
+	Removed heat time reset from deleteAllKeys.sh
