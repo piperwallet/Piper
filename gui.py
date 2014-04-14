@@ -865,6 +865,7 @@ class Tab4(tk.Frame):
 		else:
 			global tab1
 			tab1.rdoFrame3.forget()
+			tab1.encKey.set(2)
 			tab1.printPW.set(2)
 			tab1.walletPass.set("")
 			tab1.verPass.set("")

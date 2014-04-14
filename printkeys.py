@@ -85,7 +85,9 @@ finally:
 coinType = settings["cointype"]
 
 pw = ""
-if(settings["headlessEnc"] == "1"): 
+if settings["headlessEnc"] == "1" and settings["keyGenType"] != "bip0032": 
 	pw = Piper.getRandPass(int(settings['randomPasswordLength']))
-Piper.genAndPrintKeysAndPass(rememberKeys, rememberKeys, numCopies, pw, coinType, rememberKeys)
+	Piper.genAndPrintKeysAndPass(rememberKeys, rememberKeys, numCopies, pw, coinType, rememberKeys)
+else:
+	Piper.genAndPrintKeys(rememberKeys, rememberKeys, numCopies, pw, coinType, rememberKeys, settings["keyGenType"])
 

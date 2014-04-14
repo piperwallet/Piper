@@ -241,7 +241,7 @@ def print_password(headerText, ttp):
 
 
 
-def print_keypair(pubkey, privkey, leftBorderText, coinType):
+def print_keypair(pubkey, privkey, leftBorderText, coinType, btcaddr):
 
 #open the printer itself
 	printer = Adafruit_Thermal("/dev/ttyAMA0", 19200, timeout=5)
@@ -358,7 +358,10 @@ def print_keypair(pubkey, privkey, leftBorderText, coinType):
 	privkey = privkey.strip()
 	
     	#do the actual printing
-	#printer.println("Public Address: "+pubkey)
+	if len(btcaddr) != 0:
+		#printer.println("xpub: "+xpub)
+		printSegmentedKey("Bitcoin Address: "+btcaddr, printer)
+		printer.println("")
 	printSegmentedKey(pubkey, printer)
 	printer.printImage(finalImg)
 	printSegmentedKey(privkey, printer)
@@ -388,12 +391,13 @@ def genKeys(remPubKey, remPrivKey, password, coinType, remPW, bip0032):
 
 	sqliteEncrypted = 0
 	
+	btcaddr = ""
 	if bip0032:
 		import genkeys_32 as btckeys
 
 		btckeys.genKeys()
 		privkey = btckeys.privkey
-
+		btcaddr = btckeys.btcaddr
 	else:	
 		#this actually generates the keys.  see the file genkeys.py or genkeys_forget.py
 		import genkeys as btckeys
@@ -412,10 +416,14 @@ def genKeys(remPubKey, remPrivKey, password, coinType, remPW, bip0032):
 	rememberKeys = False
 	sqlitePubKey = ""
 	sqlitePrivKey = ""
+	sqliteBtcAddr = ""
 	sqlitePW = ""
 	strToWrite = ""
 	if remPubKey:
-		strToWrite = "\nPublic Key: "+btckeys.pubkey
+		if bip0032:
+			strToWrite = strToWrite + "\nBitcoin Address: "+btcaddr
+			sqliteBtcAddr = btcaddr
+		strToWrite = strToWrite + "\nPublic Key: "+btckeys.pubkey
 		sqlitePubKey = btckeys.pubkey
 		rememberKeys = True
 
@@ -424,7 +432,7 @@ def genKeys(remPubKey, remPrivKey, password, coinType, remPW, bip0032):
 		sqlitePrivKey = privkey
 		rememberKeys = True
 
-	if remPW:
+	if remPW and len(password) != 0:
 		strToWrite = strToWrite + "\nPassword: "+password
 		sqlitePW = password
 		rememberKeys = True
@@ -438,7 +446,7 @@ def genKeys(remPubKey, remPrivKey, password, coinType, remPW, bip0032):
 		con = None
 		try:
 			con = sqlite3.connect('/home/pi/Printer/keys.db3')
-		        con.execute("INSERT INTO keys (serialnum, public, private, coinType, password, encrypted) VALUES (?,?,?,?,?,?)", (snum, sqlitePubKey, sqlitePrivKey, coinType, sqlitePW, sqliteEncrypted))
+		        con.execute("INSERT INTO keys (serialnum, public, private, btcaddr, coinType, password, encrypted) VALUES (?,?,?,?,?,?,?)", (snum, sqlitePubKey, sqlitePrivKey, sqliteBtcAddr, coinType, sqlitePW, sqliteEncrypted))
 		except sqlite3.Error, e:
 			print "Error %s:" % e.args[0]
 			sys.exit(1)
@@ -458,19 +466,21 @@ def genKeys(remPubKey, remPrivKey, password, coinType, remPW, bip0032):
 
 
 	leftMarkText = "Serial Number: "+snum
-	return btckeys.pubkey, privkey, leftMarkText
+
+	return btckeys.pubkey, privkey, leftMarkText, btcaddr
+
 
 
 
 def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password, coinType, remPW, keyGenType):
 	
-	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password, coinType, remPW, (keyGenType == 'bip0032'))
+	pubkey, privkey, leftMarkText, btcaddr = genKeys(remPubKey, remPrivKey, password, coinType, remPW, (keyGenType == 'bip0032'))
 
 	
 	#do the actual printing
 	for x in range(0, numCopies):
 		#piper.print_keypair(pubkey, privkey, leftBorderText)
-		print_keypair(pubkey, privkey, leftMarkText, coinType)
+		print_keypair(pubkey, privkey, leftMarkText, coinType, btcaddr)
 		
 
 
@@ -478,12 +488,12 @@ def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password, coinType, remPW,
 
 def genAndPrintKeysAndPass(remPubKey, remPrivKey, numCopies, password, coinType, remPW):
 
-	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password, coinType, remPW, False)
+	pubkey, privkey, leftMarkText, btcaddr = genKeys(remPubKey, remPrivKey, password, coinType, remPW, False)
 	
 	#do the actual printing
 	for x in range(0, numCopies):
 		#piper.print_keypair(pubkey, privkey, leftBorderText)
-		print_keypair(pubkey, privkey, leftMarkText, coinType)
+		print_keypair(pubkey, privkey, leftMarkText, coinType, btcaddr)
 		if password != "":
 			time.sleep(3.5)
 			print_password(leftMarkText, password)
