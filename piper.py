@@ -24,6 +24,7 @@ import sqlite3
 from Adafruit_Thermal import *
 from secretsharing.shamir import Secret
 import random
+import math
 
 def getRandPass(length):
 	pw = ""
@@ -32,6 +33,22 @@ def getRandPass(length):
 	    for i in range(length):
 		pw += content[random.randint(0, len(content))].strip().capitalize()
 	return pw
+
+def printSegmentedKey(key, printer):
+	#for debugging
+	#print "full key: "+key
+
+	charsPerLine = 17
+	keyLen = len(key)
+
+	spacesToPrepend = 11
+	printer.justify('L')
+	for i in range(0,keyLen, charsPerLine):
+		for j in range(spacesToPrepend):
+			printer.printChar(' ')
+		printer.println(key[i:i+charsPerLine])
+
+
 
 def getQR(ttp, newSize):
 	qr = qrcode.QRCode(
@@ -247,15 +264,15 @@ def print_keypair(pubkey, privkey, leftBorderText, coinType):
 	printCoinName = (finalImgName == "blank")
 
 	finalImgName += "-wallet"
+
 #load a blank image of the paper wallet with no QR codes or keys on it which we will draw on
-	if(len(privkey) > 51):
-		finalImgName += "-enc"
 
 	finalImgName += ".bmp"
 	
 	finalImgFolder = "/home/pi/Printer/Images/"
 	finalImg = Image.open(finalImgFolder+finalImgName)
-
+	if finalImg.mode != "RGB":
+		finalImg = finalImg.convert("RGB")
 
 
 #---begin the public key qr code generation and drawing section---
@@ -275,51 +292,20 @@ def print_keypair(pubkey, privkey, leftBorderText, coinType):
 	pubkeyImg = qr.make_image()
 
 #resize the qr code to match our design
-	pubkeyImg = pubkeyImg.resize((175,175), Image.NEAREST)
+	pubkeyImg = pubkeyImg.resize((265,265), Image.NEAREST)
 
 
 	font = ImageFont.truetype("/usr/share/fonts/ttf/swansea.ttf", 60)
 	draw = ImageDraw.Draw(finalImg)
 
 	if(printCoinName):
-		draw.text((45, 400), coinType, font=font, fill=(0,0,0))
+		draw.text((10, 380), coinType, font=font, fill=(0,0,0))
 
 
 	font = ImageFont.truetype("/usr/share/fonts/ttf/ubuntu-font-family-0.80/UbuntuMono-R.ttf", 20)
-	startPos=(110,38)
-	charDist=15
-	lineHeight=23
-	lastCharPos=0
-
-	keyLength = len(pubkey)
-
-	while(keyLength % 17 != 0):
-		pubkey += " "
-		keyLength = len(pubkey)
-
-
-
-
-#draw 2 lines of 17 characters each.  keyLength always == 34 so keylength/17 == 2
-	for x in range(0,keyLength/17):
-		lastCharPos=0
-		#print a line
-		for y in range(0, 17):
-			theChar = pubkey[(x*17)+y]
-			charSize = draw.textsize(theChar, font=font)
-			
-			#if y is 0 then this is the first run of this loop, and we should use startPos[0] for the x coordinate instead of the lastCharPos
-			if y == 0:
-				draw.text((startPos[0],startPos[1]+(lineHeight*x)),theChar, font=font, fill=(0,0,0))
-				lastCharPos = startPos[0]+charSize[0]+(charDist-charSize[0])
-			else:
-				draw.text((lastCharPos,startPos[1]+(lineHeight*x)),theChar, font=font, fill=(0,0,0))
-				lastCharPos = lastCharPos + charSize[0] + (charDist-charSize[0])
-
-
 
 #draw the QR code on the final image
-	finalImg.paste(pubkeyImg, (150, 106))
+	finalImg.paste(pubkeyImg, (104, 25))
 
 #---end the public key qr code generation and drawing section---
 
@@ -343,41 +329,10 @@ def print_keypair(pubkey, privkey, leftBorderText, coinType):
 	privkeyImg = qr.make_image()
 
 #resize the qr code to match our design
-	privkeyImg = privkeyImg.resize((220,220), Image.NEAREST)
+	privkeyImg = privkeyImg.resize((265,265), Image.NEAREST)
 
 	#draw the QR code on the final image
-	finalImg.paste(privkeyImg, (125, 560))
-
-
-	startPos=(110,807)
-	charDist=15
-	lineHeight=23
-	lastCharPos=0
-
-	keyLength = len(privkey)
-
-	while(keyLength % 17 != 0):
-		privkey += " "
-		keyLength = len(privkey)
-
-
-#draw 2 lines of 17 characters each.  keyLength always == 34 so keylength/17 == 2
-	for x in range(0,keyLength/17):
-		lastCharPos=0
-		#print a line
-		for y in range(0, 17):
-			theChar = privkey[(x*17)+y]
-			charSize = draw.textsize(theChar, font=font)
-			#print charSize
-			if y == 0:
-				draw.text((startPos[0],startPos[1]+(lineHeight*x)),theChar, font=font, fill=(0,0,0))
-				lastCharPos = startPos[0]+charSize[0]+(charDist-charSize[0])
-			else:
-				draw.text((lastCharPos,startPos[1]+(lineHeight*x)),theChar, font=font, fill=(0,0,0))
-				lastCharPos = lastCharPos + charSize[0] + (charDist-charSize[0])
-
-#---end the private key qr code generation and drawing section---
-
+	finalImg.paste(privkeyImg, (104,537))
 
 
 #create the divider
@@ -403,15 +358,11 @@ def print_keypair(pubkey, privkey, leftBorderText, coinType):
 	privkey = privkey.strip()
 	
     	#do the actual printing
+	#printer.println("Public Address: "+pubkey)
+	printSegmentedKey(pubkey, printer)
 	printer.printImage(finalImg)
-	if(len(privkey) <= 51):
-		printer.printChar(privkey[:17]+"\n")
-		printer.justify('R')
-		printer.printChar(privkey[17:34]+"\n")
-		printer.justify('L')
-		printer.printChar(privkey[34:]+"\n")
-	else:
-		printer.println(privkey)
+	printSegmentedKey(privkey, printer)
+	#printer.println(privkey)
 
 	#print the divider line
 	printer.printImage(dividerLineImg)
@@ -420,12 +371,9 @@ def print_keypair(pubkey, privkey, leftBorderText, coinType):
 	printer.feed(3)
 
 
-
-
-
 	printer.setDefault() # Restore printer to defaults
 	
-def genKeys(remPubKey, remPrivKey, password, coinType, remPW):
+def genKeys(remPubKey, remPrivKey, password, coinType, remPW, bip0032):
 
 	#open serial number file which tracks the serial number
 	snumfile = open('serialnumber.txt', 'r+')
@@ -438,20 +386,28 @@ def genKeys(remPubKey, remPrivKey, password, coinType, remPW):
 
 
 
-	#this actually generates the keys.  see the file genkeys.py or genkeys_forget.py
-	import genkeys as btckeys
-
-	btckeys.genKeys()
-		
-	import wallet_enc as WalletEnc
-	#encrypt the keys if needed
 	sqliteEncrypted = 0
-	if(password != ""):
-		privkey = WalletEnc.pw_encode(btckeys.pubkey, btckeys.privkey, password)
-		sqliteEncrypted = 1
-	else:
-		privkey = btckeys.privkey
 	
+	if bip0032:
+		import genkeys_32 as btckeys
+
+		btckeys.genKeys()
+		privkey = btckeys.privkey
+
+	else:	
+		#this actually generates the keys.  see the file genkeys.py or genkeys_forget.py
+		import genkeys as btckeys
+
+		btckeys.genKeys()
+			
+		import wallet_enc as WalletEnc
+		#encrypt the keys if needed
+		if(password != ""):
+			privkey = WalletEnc.pw_encode(btckeys.pubkey, btckeys.privkey, password)
+			sqliteEncrypted = 1
+		else:
+			privkey = btckeys.privkey
+		
 	
 	rememberKeys = False
 	sqlitePubKey = ""
@@ -506,9 +462,10 @@ def genKeys(remPubKey, remPrivKey, password, coinType, remPW):
 
 
 
-def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password, coinType, remPW):
+def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password, coinType, remPW, keyGenType):
 	
-	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password, coinType, remPW)
+	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password, coinType, remPW, (keyGenType == 'bip0032'))
+
 	
 	#do the actual printing
 	for x in range(0, numCopies):
@@ -521,13 +478,14 @@ def genAndPrintKeys(remPubKey, remPrivKey, numCopies, password, coinType, remPW)
 
 def genAndPrintKeysAndPass(remPubKey, remPrivKey, numCopies, password, coinType, remPW):
 
-	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password, coinType, remPW)
+	pubkey, privkey, leftMarkText = genKeys(remPubKey, remPrivKey, password, coinType, remPW, False)
 	
 	#do the actual printing
 	for x in range(0, numCopies):
 		#piper.print_keypair(pubkey, privkey, leftBorderText)
 		print_keypair(pubkey, privkey, leftMarkText, coinType)
 		if password != "":
+			time.sleep(3.5)
 			print_password(leftMarkText, password)
 		
 

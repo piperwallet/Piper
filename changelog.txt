@@ -21,3 +21,9 @@ From 1.05 to 1.06:
 	Added alt coins and cleaned up litecoin key generation.  Was able to remove seperate version of vanitygen for litecoin only.
 	Removed sleep from between duplicate wallet printing
 	Added Utilities tab to GUI with SSSS and misc text printing
+
+From 1.06 to 1.07:
+	Added option for BIP32 key generation with xpub and xprv
+	Added the ability to add new alt-coins on the Utilities tab
+	Created new wallet designs
+	
