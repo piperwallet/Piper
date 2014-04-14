@@ -27,3 +27,9 @@ From 1.06 to 1.07:
 	Added the ability to add new alt-coins on the Utilities tab
 	Created new wallet designs
 	
+From 1.07 to 1.08:
+	This update changed the way the user interfaces with the button to activate printing.  Instead of holding the button down for a specific time to activate different features, the user should now press the button multiple times to activate those features.  See the manual at https://piperwallet.com/owner for more information
+
+From v1.08 to 1.09
+	Fixed shutdown LED behavior bug
+	Added option for old vs new printer firmware version to Settings tab	
