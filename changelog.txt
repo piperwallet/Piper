@@ -43,3 +43,6 @@ From 1.11 to 1.12
 	Changed bip32 generation to also print btc address in addition to xpub
 	Updated Armory to latest version
 	Updated bitaddress.org to latest version
+
+From 1.12 to 1.13
+	Changed button polling method to match new hardware revision
